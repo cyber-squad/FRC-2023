@@ -2,14 +2,10 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot;
+// Sokmontrey Sythat
+// 2023
 
-/*
- * Author: Sythat, Sokmontrey & Mallari, Eirich Rain
- * Mr. Odebiyi
- * ICS4U
- * Date: January 23, 2023
- */
+package frc.robot;
 
 //import all the nessary library to control the robot using an XBox Controller 
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -33,10 +29,10 @@ public class Robot extends TimedRobot {
   private XboxController _stick;
   private Joystick _stick2;
 
-  private double max_speed_factor = 0.8;
+  private double max_speed_factor = 0.65;
   private double intake_direction = 0;
 
-  Timer timer = new Timer();
+  Timer timer;
 
   @Override
   public void robotInit() {
@@ -65,8 +61,8 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     if(_stick.getRightBumperPressed()){
-      if(max_speed_factor == 0.6) max_speed_factor = 0.3;
-      else max_speed_factor = 0.6;
+      if(max_speed_factor == 0.65) max_speed_factor = 0.3;
+      else max_speed_factor = 0.65;
     }
 
     if(_stick.getYButtonPressed()){
@@ -109,39 +105,69 @@ public class Robot extends TimedRobot {
 
   @Override 
   public void autonomousInit(){
-    timer.start();
-    turn(-1 * 0.7);
+    timer = new Timer();
   }
 
   @Override 
   public void autonomousPeriodic(){
-    //turn for ()second then stop
-    if(timer.get() > 1){
-      turn(0);
-      move(1);
-    }else if(timer.get() > 1 + 2){
-      move(0);
-      take(-1 * 0.7);
-    }
+    //initial object
+    turn_right(2);
+    move_forward(3);
+    take_out();
   }
 
-  private void take(double speed){
+  private double max_auto_speed = 0.5;
+
+  private void take_in(){
+    set_intake(-1 * 0.7);
+    timer.delay(2);
+    set_intake(0);
+  }
+  private void take_out(){
+    set_intake(1 * 0.7);
+    timer.delay(2);
+    set_intake(0);
+  }
+  private void stop_all_motor(){
+    set_left(0);
+    set_right(0);
+    set_intake(0);
+  }
+
+  private void turn_left(double duration){
+    set_left(-1 * max_auto_speed);
+    set_right(1 * max_auto_speed);
+    timer.delay(duration);
+    stop_all_motor();
+  }
+  private void turn_right(double duration){
+    set_left(1 * max_auto_speed);
+    set_right(-1 * max_auto_speed);
+    timer.delay(duration);
+    stop_all_motor();
+  }
+  private void move_forward(double duration){
+    set_left(1 * max_auto_speed);
+    set_right(1 * max_auto_speed);
+    timer.delay(duration);
+    stop_all_motor();
+  }
+  private void move_backward(double duration){
+    set_left(-1 * max_auto_speed);
+    set_right(-1 * max_auto_speed);
+    timer.delay(duration);
+    stop_all_motor();
+  }
+
+  private void set_intake(double speed){
     _intake1.set(speed);
   }
-
-  private void move(double speed){
-    _right_drive1.set(speed);
-    _right_drive2.set(speed);
-
+  private void set_left(double speed){
     _left_drive1.set(speed);
     _left_drive2.set(speed);
   }
-
-  private void turn(double speed){
-    _right_drive1.set(- speed);
-    _right_drive2.set(- speed);
-
-    _left_drive1.set(speed);
-    _left_drive2.set(speed);
+  private void set_right(double speed){
+    _right_drive1.set(speed);
+    _right_drive2.set(speed);
   }
 }
