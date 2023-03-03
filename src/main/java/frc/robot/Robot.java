@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Timer;
 
 public class Robot extends TimedRobot {
   //declare PWMVictorSPX drivers object for the left motors(front and back)
@@ -34,6 +35,8 @@ public class Robot extends TimedRobot {
 
   private double max_speed_factor = 0.8;
   private double intake_direction = 0;
+
+  Timer timer = new Timer();
 
   @Override
   public void robotInit() {
@@ -102,5 +105,43 @@ public class Robot extends TimedRobot {
 
     _right_drive2.set(right_speed);
     _left_drive2.set(left_speed);
+  }
+
+  @Override 
+  public void autonomousInit(){
+    timer.start();
+    turn(-1 * 0.7);
+  }
+
+  @Override 
+  public void autonomousPeriodic(){
+    //turn for ()second then stop
+    if(timer.get() > 1){
+      turn(0);
+      move(1);
+    }else if(timer.get() > 1 + 2){
+      move(0);
+      take(-1 * 0.7);
+    }
+  }
+
+  private void take(double speed){
+    _intake1.set(speed);
+  }
+
+  private void move(double speed){
+    _right_drive1.set(speed);
+    _right_drive2.set(speed);
+
+    _left_drive1.set(speed);
+    _left_drive2.set(speed);
+  }
+
+  private void turn(double speed){
+    _right_drive1.set(- speed);
+    _right_drive2.set(- speed);
+
+    _left_drive1.set(speed);
+    _left_drive2.set(speed);
   }
 }
