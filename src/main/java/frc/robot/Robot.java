@@ -10,17 +10,20 @@
  * - Variable name are snake_case
  * - Method name are camelCase 
  * 
- * TODO: try using smart dashboard for variable robot setting
- * TODO: Use Camera
 */
 
 package frc.robot;
 
 //import all the nessary library to control the robot
+import edu.wpi.first.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.VideoSink;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Joystick;
+
 import edu.wpi.first.wpilibj.Timer;
 
 public class Robot extends TimedRobot {
@@ -37,12 +40,18 @@ public class Robot extends TimedRobot {
 
   //define and declare Controller (XboxController & JoyStick)
   private XboxController _stick = new XboxController(0);
+  //NOTE: check here after testing TANK DRIVE
+  // private Joystick _stick = new Joystick(0);
   private Joystick _stick2 = new Joystick(1);
 
   //will be multiplied the raw speed to lower the robot's speed
   // 0 < max_speed_factor <= 1
   //Could be negative but everything will be inverted
   private double _max_speed_factor = 0.65;
+  private double _min_speed_factor = 0.3;
+
+  //store max_speed_factor other other usage (max_speed_factor can be changed when a button is pressed)
+  private double _max_speed_store = _max_speed_factor;
   //max speed for autonomous stage
   private double _max_auto_speed = 0.5;
 
@@ -53,6 +62,10 @@ public class Robot extends TimedRobot {
   //create Timer object named timer for working with timing in autonomous stage
   Timer _timer;
 
+  //Camera related object
+  UsbCamera _camera1;
+  VideoSink _cam_server;
+
   //When the robot start
   @Override
   public void robotInit() {
@@ -61,31 +74,34 @@ public class Robot extends TimedRobot {
     _left_drive1.setInverted(true);
     _left_drive2.setInverted(true);
 
-    //TODO: check of the intake motor needed to be inverted
-    //_intake1.setInverted(true);
+    //TODO: check if the intake motor needed to be inverted
+    _intake1.setInverted(true);
+
+    //setup camera
+    _camera1 = CameraServer.startAutomaticCapture();
+    _camera1.setResolution(320, 240);
+    _camera1.setFPS(30);
+
+    // Create a video server and attach the camera stream to it
+    _cam_server = CameraServer.getServer();
+    _cam_server.setSource(_camera1);
   }
 
   //Loop for teleop stage
   @Override
   public void teleopPeriodic() {
+    //TODO: check this after testing the Tank drive
+    //only for Xboxcontroller
     if(_stick.getRightBumperPressed()){
-      if(_max_speed_factor == 0.65) _max_speed_factor = 0.3;
-      else _max_speed_factor = 0.65;
-    }
+      if(_max_speed_factor == _max_speed_store) _max_speed_factor = _min_speed_factor;
+      else _max_speed_factor = _max_speed_store;
+    } 
 
-    //listen for a certain XBox button to be pressed to change intake direction
-    //Y for take out
-    //A for take in
-    //When none of the button is pressed, intake direction is 0
-    if(_stick.getYButtonPressed()){
-      _intake_direction = 1;
-    }
-    if(_stick.getBButtonPressed()){
-      _intake_direction = -1;
-    }
-    if(_stick.getYButtonReleased() || _stick.getBButtonReleased()){
-      _intake_direction = 0;
-    }
+    // //TODO: Test this too (speed changing with Xbox controller using Joystick class)
+    // if(_stick.getRawButton(10)){
+    //   if(_max_speed_factor == _max_speed_store) _max_speed_factor = _min_speed_factor;
+    //   else _max_speed_factor = _max_speed_store;
+    // }
 
     //listen for a certain JoyStick button to be pressed to change intake direction
     //2 for take in
@@ -104,11 +120,19 @@ public class Robot extends TimedRobot {
     //Setting intake motor to speed * direction constantly.
     _setIntake(_intake_direction * _intake_speed);
 
-    //get Value from the Joystick X and Y axis (only the left side)
-    //Combine both value together to get left and right motor speed (ARCADE drive)
-    //Math.min & Math.max is to limit the range of the combination (addition and substract) to a value between -1 and 1
-    double left_speed = Math.min(1, Math.max(-1, _stick.getLeftY() - _stick.getLeftX()));
-    double right_speed = Math.min(1, Math.max(-1, _stick.getLeftY() + _stick.getLeftX()));
+    /*ARCADE DRIVE
+    * get Value from the Joystick X and Y axis (only the left side)
+    * Combine both value together to get left and right motor speed (ARCADE drive)
+    * Math.min & Math.max is to limit the range of the combination (addition and substract) to a value between -1 and 1
+    */
+    // double left_speed = Math.min(1, Math.max(-1, _stick.getLeftY() - _stick.getLeftX()));
+    // double right_speed = Math.min(1, Math.max(-1, _stick.getLeftY() + _stick.getLeftX()));
+    /* END ARCADE DRIVE */
+
+    /* TANK DRIVE */
+    double left_speed = _stick.getRawAxis(1);
+    double right_speed = _stick.getRawAxis(3);
+    /* END TANK DRIVE */
 
     //motor_speed * max_speed to lower the speed of the robot
     left_speed *= _max_speed_factor;
@@ -122,21 +146,19 @@ public class Robot extends TimedRobot {
   //When the autonomouse stage start
   @Override 
   public void autonomousInit(){
-    _timer = new Timer();
-  }
-
-  //Loop for the autonomous stage
-  @Override 
-  public void autonomousPeriodic(){
     /*
      * The robot will be given a game object at the beginning 
      * 1. Turn the robot 180 (TODO: TEST IF THE ROBOT TURN 180 DEGREE)
      * 2. Move forward until it reach the "grid"
      * 3. release the game object
      */
-    _turnRight(2);
-    _moveForward(3);
+    _timer = new Timer();
     _takeOut();
+  }
+
+  //Loop for the autonomous stage
+  @Override 
+  public void autonomousPeriodic(){
   }
 
   /*
@@ -184,12 +206,12 @@ public class Robot extends TimedRobot {
 
   private void _takeIn(){
     _setIntake(-1 * _intake_speed);
-    _timer.delay(2);
+    _timer.delay(1);
     _setIntake(0);
   }
   private void _takeOut(){
     _setIntake(1 * _intake_speed);
-    _timer.delay(2);
+    _timer.delay(1);
     _setIntake(0);
   }
 
