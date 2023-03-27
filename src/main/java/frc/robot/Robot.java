@@ -19,6 +19,8 @@ import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.VideoSink;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.XboxController;
@@ -48,16 +50,16 @@ public class Robot extends TimedRobot {
   // 0 < max_speed_factor <= 1
   //Could be negative but everything will be inverted
   private double _max_speed_factor = 0.65;
-  private double _min_speed_factor = 0.3;
+  private double _min_speed_factor = 0.85;
 
   //store max_speed_factor other other usage (max_speed_factor can be changed when a button is pressed)
   private double _max_speed_store = _max_speed_factor;
   //max speed for autonomous stage
-  private double _max_auto_speed = 0.5;
+  private double _max_auto_speed = 0.65;
 
   //A variable for intake rotation 1=out, 0=stop, -1=in
   private double _intake_direction = 0;
-  private double _intake_speed = 0.7;
+  private double _intake_speed = 0.85;
 
   //create Timer object named timer for working with timing in autonomous stage
   Timer _timer;
@@ -85,6 +87,11 @@ public class Robot extends TimedRobot {
     // Create a video server and attach the camera stream to it
     _cam_server = CameraServer.getServer();
     _cam_server.setSource(_camera1);
+
+    //smartdashboard
+    SmartDashboard.putBoolean("DB/Button 0", true);
+    SmartDashboard.putString("DB/String 0", "true backward");
+    SmartDashboard.putString("DB/String 1", "false turn");
   }
 
   //Loop for teleop stage
@@ -154,6 +161,12 @@ public class Robot extends TimedRobot {
      */
     _timer = new Timer();
     _takeOut();
+    _timer.delay(0.5);
+    if(SmartDashboard.getBoolean("DB/Button 0", true)){
+      _moveBackward(1);
+    }else{
+      _turnLeft(0.8);
+    }
   }
 
   //Loop for the autonomous stage
@@ -192,14 +205,14 @@ public class Robot extends TimedRobot {
     _stopAllMotor();
   }
   private void _moveForward(double duration){
-    _setLeft(1 * _max_auto_speed);
-    _setRight(1 * _max_auto_speed);
+    _setLeft(-1 * _max_auto_speed);
+    _setRight(-1 * _max_auto_speed);
     _timer.delay(duration);
     _stopAllMotor();
   }
   private void _moveBackward(double duration){
-    _setLeft(-1 * _max_auto_speed);
-    _setRight(-1 * _max_auto_speed);
+    _setLeft(1 * _max_auto_speed);
+    _setRight(1 * _max_auto_speed);
     _timer.delay(duration);
     _stopAllMotor();
   }
